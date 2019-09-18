@@ -1,10 +1,7 @@
-package com.sankuai.inf.leaf.snowflake;
+package com.sankuai.inf.leaf.server;
 
-import com.google.common.base.Preconditions;
-import com.sankuai.inf.leaf.IDGen;
 import com.sankuai.inf.leaf.common.Result;
 import com.sankuai.inf.leaf.common.Status;
-import com.sankuai.inf.leaf.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,11 +29,10 @@ import java.util.Random;
  * SnowFlake的优点是，整体上按照时间自增排序，并且整个分布式系统内不会产生ID碰撞，并且效率较高，经测试，SnowFlake每秒能够产生26万ID左右。
  * <p>
  * <p>
- *
  */
-public class SnowflakeIDGenImpl implements IDGen {
+public class SnowflakeIDGen {
 
-    static private final Logger LOGGER = LoggerFactory.getLogger(SnowflakeIDGenImpl.class);
+    static private final Logger LOGGER = LoggerFactory.getLogger(SnowflakeIDGen.class);
     //起始时间戳
     private final long START_TIMESTAMP = 1288834974657L;
     //workId占用的位数
@@ -54,30 +50,13 @@ public class SnowflakeIDGenImpl implements IDGen {
     private long workerId;
     private long sequence = 0L;
     private long lastTimestamp = -1L;
-    public boolean initFlag = false;
     private static final Random RANDOM = new Random();
-    private int port;
 
-    @Override
-    public boolean init() {
-        return true;
+    public SnowflakeIDGen(long workerId) {
+        this.workerId = workerId;
     }
 
-    public SnowflakeIDGenImpl(String zkAddress, int port) {
-        this.port = port;
-        SnowflakeZookeeperHolder holder = new SnowflakeZookeeperHolder(Utils.getIp(), String.valueOf(port), zkAddress);
-        initFlag = holder.init();
-        if (initFlag) {
-            workerId = holder.getWorkerID();
-            LOGGER.info("START SUCCESS USE ZK WORKERID-{}", workerId);
-        } else {
-            Preconditions.checkArgument(initFlag, "Snowflake Id Gen is not init ok");
-        }
-        Preconditions.checkArgument(workerId >= 0 && workerId <= MAX_WORKER_ID, "workerID must gte 0 and lte 1023");
-    }
-
-    @Override
-    public synchronized Result get(String key) {
+    public synchronized Result getId() {
         long timestamp = timeGen();
         if (timestamp < lastTimestamp) {
             //发生时钟回拨
@@ -135,6 +114,13 @@ public class SnowflakeIDGenImpl implements IDGen {
 
     public long getWorkerId() {
         return workerId;
+    }
+
+    public static void main(String[] args) {
+        SnowflakeIDGen snowflakeIDGen = new SnowflakeIDGen(1L);
+        for (int i = 0; i < 5000; i++) {
+            System.out.println(snowflakeIDGen.getId().getId());
+        }
     }
 
 }
